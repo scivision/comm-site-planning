@@ -1,8 +1,0 @@
-setuptools
-nose
-six
-numpy
-astropy
-python-dateutil
-matplotlib
-seaborn

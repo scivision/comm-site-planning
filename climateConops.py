@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Michael Hirsch
 Thanks to Amber Baurley and Sam Chen for climate research

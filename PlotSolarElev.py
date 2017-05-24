@@ -8,8 +8,7 @@ If you'd like to incorporate a better spectral model like Lowtran or Hitran let 
 Michael Hirsch
  Aug 2012 -- updated to Astropy Feb 2015
 """
-from __future__ import absolute_import,division
-from commsiteplan.compsolar import compsolar
+from commsiteplan import compsolar
 from matplotlib.pyplot import show
 import seaborn as sns
 sns.color_palette(sns.color_palette("cubehelix"))
