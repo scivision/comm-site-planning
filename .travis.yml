@@ -26,7 +26,7 @@ install:
     
     - conda config --set always_yes yes --set changeps1 no
     - conda update -q conda
-    - conda create -n test python=$pyv
+    - conda create -n test python=$PYTHON_TRAVIS_VERSION
     - source activate test
     - pip -q install coveralls
     
