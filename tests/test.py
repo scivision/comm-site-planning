@@ -3,8 +3,7 @@ from datetime import datetime
 from numpy import nan
 from numpy.testing import assert_allclose,run_module_suite
 #
-from commsiteplan.airMass import airmass
-from commsiteplan.compsolar import compsolar
+from commsiteplan import airmass, compsolar
 
 def test_plotsolar():
     Irr,sunel,Whr = compsolar('pfisr',(None,None,None),
