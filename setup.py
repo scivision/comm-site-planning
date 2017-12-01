@@ -1,12 +1,6 @@
 #!/usr/bin/env python
-req = ['nose','numpy','astropy','python-dateutil','matplotlib','seaborn']
-import pip
-try:
-    import conda.cli
-    conda.cli.main('install',*req)
-except Exception as e:    
-    pip.main(['install'] + req)
-    
+install_requires= ['numpy','astropy','python-dateutil',]
+tests_require=['nose','coveralls']
 # %%
 from setuptools import setup
 
@@ -16,6 +10,11 @@ setup(name='CommSitePlan',
 	  description='utilities for planning comms sites and science outposts',
 	  author='Michael Hirsch',
 	  url='https://github.com/scivision/comm-site-planning',
+      install_requires=install_requires,
+      tests_require=tests_require,
+      extras_require={'plot':['matplotlib','seaborn'],
+                      'tests':tests_require},
+      python_requires='>=2.7',
 	  )
 
 
