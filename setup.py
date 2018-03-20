@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-install_requires= ['numpy','astropy','python-dateutil','xarray']
+install_requires= ['numpy','astropy','python-dateutil','xarray','matplotlib']
 tests_require=['pytest','nose','coveralls']
 # %%
 from setuptools import setup, find_packages
@@ -14,7 +14,7 @@ setup(name='CommSitePlan',
 	  url='https://github.com/scivision/comm-site-planning',
       install_requires=install_requires,
       tests_require=tests_require,
-      extras_require={'plot':['seaborn','matplotlib'],
+      extras_require={'plot':['seaborn'],
                       'tests':tests_require},
       python_requires='>=3.6',
       classifiers=[
