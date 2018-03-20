@@ -10,10 +10,13 @@ Michael Hirsch
 """
 from commsiteplan import compsolar
 from matplotlib.pyplot import show
-import seaborn as sns
-sns.color_palette(sns.color_palette("cubehelix"))
-sns.set(context='poster', style='whitegrid')
-sns.set(rc={'image.cmap': 'cubehelix_r'}) #for contour
+try:
+    import seaborn as sns
+    sns.color_palette(sns.color_palette("cubehelix"))
+    sns.set(context='poster', style='whitegrid')
+    sns.set(rc={'image.cmap': 'cubehelix_r'}) #for contour
+except ImportError:
+    pass
 
 
 if __name__ == '__main__':
@@ -31,6 +34,6 @@ if __name__ == '__main__':
 
     doplot = p.noplot
 
-    Irr, sunel,dates = compsolar(p.site, p.coord, 2013, p.minel, p.pph, doplot)
+    Irr, sunel = compsolar(p.site, p.coord, 2013, p.minel, p.pph, doplot)
 
     show()

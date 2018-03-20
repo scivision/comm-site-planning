@@ -7,7 +7,6 @@ Thanks to Amber Baurley and Sam Chen for climate research
  Dec 21 worst-case heating need -- 10th percentile
  Sept 1 worst-case cooling need
 """
-from __future__ import division
 from numpy import sin,radians
 #
 #Qequip = { 'rest': 125, 'record': 175, 'compress': 250, 'off':5 } #[W]

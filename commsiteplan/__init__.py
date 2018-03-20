@@ -1,6 +1,7 @@
  # -*- coding: utf-8 -*-
 import numpy as np
 from numpy import sin,cos
+import xarray
 from datetime import datetime
 import astropy.units as u
 from astropy.coordinates import get_sun, EarthLocation, AltAz
@@ -10,7 +11,7 @@ from matplotlib.dates import MonthLocator,DateFormatter
 
 from .plots import plotIrr, plotyear, plotenergy
 
-def compsolar(site,coord,year,minel,plotperhour,doplot):
+def compsolar(site,coord,year,minel,plotperhour,doplot=False):
     """
     site: arbitrary string
     coord: 2- or 3-tuple of WGS-84 coordinates in degrees optional altitude in meters
@@ -51,24 +52,28 @@ def compsolar(site,coord,year,minel,plotperhour,doplot):
     sun = get_sun(Time(times)).transform_to(AltAz(obstime=times,location=obs))
     sunel = sun.alt.degree.reshape((plotperday,-1),order='F')
 
-    Irr = airmass(sunel,times,minel)[0]
+    Irr = airmass(sunel,times,minel)
 
-    Whr = estenergy(Irr,hoursofday)
+    Irr = estenergy(Irr,hoursofday)
 
     if doplot:
         lbl=MonthLocator(range(1,13),bymonthday=15,interval=1)
         fmt=DateFormatter("%b")
-        plotIrr(dates,hoursofday,Irr,site,obs,lbl,fmt)
+        plotIrr(dates,hoursofday,Irr['Irr'],site,obs,lbl,fmt)
         plotyear(dates,hoursofday,sunel,site,obs,lbl,fmt)
-        plotenergy(Whr,dates,site,obs,lbl,fmt)
+        plotenergy(Irr['Whr'],dates,site,obs,lbl,fmt)
 
-    return Irr,sunel,Whr
+    return Irr,sunel
+
 
 def estenergy(Irr,hoursofday):
-    secs = [(h-hoursofday[0]).total_seconds()/3600 for h in hoursofday]
-    Irr[np.isnan(Irr)] = 0
 
-    return np.trapz(Irr,x=secs,axis=0)
+    secs = [(h-hoursofday[0]).total_seconds()/3600 for h in hoursofday]
+    Irr['Irr'].fillna(0.)
+
+    Irr['Whr'] = np.trapz(Irr['Irr'],x=secs,axis=0)
+
+    return Irr
 
 #%%
 def airmass(thetadeg,dtime,minelevation_deg=5.):
@@ -87,7 +92,7 @@ def airmass(thetadeg,dtime,minelevation_deg=5.):
     """
     doy = Time2doy(dtime)
 
-    thd = np.copy(thetadeg) #copy() so we don't corrupt the calling function!
+    thd = np.atleast_1d(thetadeg)
     thd[(thd<minelevation_deg) | (thd>90)] = np.nan
     thr = np.radians(thd)
 #%% Air mass model (very simple model)
@@ -128,21 +133,31 @@ def airmass(thetadeg,dtime,minelevation_deg=5.):
     if Irr.size == Am.size and Irr.ndim != Am.ndim:
         Irr = Irr.reshape(Am.shape)
 
-    return Irr, Am,I0
+    if Irr.ndim==1:
+        A = xarray.Dataset(
+                       {'Am':('angle_deg',Am),
+                        'Irr':('angle_deg',Irr)},
+                       coords={'angle_deg':thd},
+                       attrs={'I0':I0.item()})
+        A = A.dropna(how='all',dim='angle_deg')
+    elif Irr.ndim==2:
+        A = xarray.Dataset(
+                        {'Am':(('hour','doy'),Am),
+                         'Irr':(('hour','doy'),Irr)},
+                         coords={'hour':range(24),
+                                 'doy':range(365)})
 
-def Time2doy(dtime):
+
+    return A
+
+
+def Time2doy(dtime:datetime) -> int:
     dtime = np.atleast_1d(dtime)
-    try:
-        doy = np.empty_like(dtime, int)
-        for i,t in enumerate(dtime):
-            if isinstance(t,datetime):
-                doy[i] = int(t.strftime('%j'))
-            else: #assuming astropy.Time
-                doy[i] = int(t.datetime.strftime('%j'))
-    except (TypeError,AttributeError):
-        pass #already doy (we hope)
+
+    doy = np.asarray([int(t.strftime('%j')) for t in dtime])
 
     return doy
+
 
 def doy2monthday(doy):
     doy = np.atleast_1d(doy)

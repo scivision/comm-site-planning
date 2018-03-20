@@ -1,23 +1,29 @@
 #!/usr/bin/env python
 import numpy as np
 from datetime import datetime
+from dateutil.parser import parse
 from matplotlib.pyplot import show
 #
-from commsiteplan import airmass
+import commsiteplan as csp
 from commsiteplan.plots import plotam
 
 if __name__ =='__main__':
     from argparse import ArgumentParser
     p = ArgumentParser(description='trivial model of solar irradiance at sea level. Use Lowtran or Hitran for more detailed modeling')
+    p.add_argument('date',help='YYYY-mm-dd date',nargs='?')
     p.add_argument('-a','--theta',help='angle(s) [deg] to compute sea level solar irradiance',nargs='?',type=float,default=np.arange(0.,90+1,1))
-    p.add_argument('-d','--dtime',help='YYYY-mm-dd date',nargs='?',default='2015-03-06',type=str)
     p = p.parse_args()
 
-    dtime = datetime.strptime(p.dtime,'%Y-%m-%d')
+    if p.date is not None:
+        date = parse(p.date)
+    else:
+        date = datetime.today().date()
 
-    Irr,M,I0 = airmass(p.theta,dtime)
-    if Irr.size > 1:
-        plotam(Irr,M,I0,p.theta)
+    Irr = csp.airmass(p.theta, date)
+
+    if Irr.angle_deg.size > 1:
+        plotam(Irr)
         show()
     else:
-        print('Irr: {:0.1f} [W/m^2]   Airmass relative to Zenith: {:0.3f}'.format(Irr,M))
+        print(f'Irradiance: {Irr["Irr"].item():0.1f} [W/m^2]  '
+               f'Airmass relative to Zenith: {Irr["Am"].item():0.3f}')

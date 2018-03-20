@@ -8,19 +8,19 @@ def plotyear(dates,hoursofday,sunel,site,obs,lbl,fmt):
     CS = ax.contour(dates,hoursofday,sunel,V)
     ax.clabel(CS, inline=1, fontsize=10,fmt='%0.0f')#, manual=manual_locations)
     ax.set_ylabel('UTC')
-    ax.set_title('Solar elevation angle (deg.)  {}: {:.1f},{:.1f}'.format(site,obs.latitude,obs.longitude))
+    ax.set_title('Solar elevation angle (deg.)  {}: {:.1f},{:.1f}'.format(site,obs.lat,obs.lon))
     ax.grid(True)
 #    fg.autofmt_xdate()
     ax.xaxis.set_major_locator(lbl)
     ax.xaxis.set_major_formatter(fmt)
 
-def plotIrr(dates,hoursofday,sunel,site,obs,lbl,fmt):
+def plotIrr(dates,hoursofday,Irr,site,obs,lbl,fmt):
     fg = figure(figsize=(12,7),dpi=100)
     ax = fg.gca()
-    CS = ax.contour(dates,hoursofday,sunel)
+    CS = ax.contour(dates,hoursofday, Irr)
     ax.clabel(CS, inline=1, fontsize=10,fmt='%0.0f')#, manual=manual_locations)
     ax.set_ylabel('UTC')
-    ax.set_title('Sea level solar irradiance [W/m$^2$] at {}: {:.1f},{:.1f}'.format(site,obs.latitude,obs.longitude))
+    ax.set_title('Sea level solar irradiance [W/m$^2$] at {}: {:.1f},{:.1f}'.format(site,obs.lat,obs.lon))
     ax.grid(True)
 #    fg.autofmt_xdate()
     ax.xaxis.set_major_locator(lbl)
@@ -39,15 +39,15 @@ def plotenergy(Whr,dates,site,obs,lbl,fmt):
     ax.plot(dates,Whr/1000)
     ax.set_xlabel('UTC')
     ax.set_ylabel('kWhr m$^{-2}$ day$^{-1}$')
-    ax.set_title('Daily Solar Energy at {}: {:.1f}, {:.1f}'.format(site,obs.latitude,obs.longitude))
+    ax.set_title('Daily Solar Energy at {}: {:.1f}, {:.1f}'.format(site,obs.lat,obs.lon))
     ax.set_ylim(0,12)
     ax.xaxis.set_major_locator(lbl)
     ax.xaxis.set_major_formatter(fmt)
 
 
-def plotam(Irr,M,I0,theta):
+def plotam(Irr):
     ax=figure().gca()
-    ax.plot(theta,Irr.T)
+    ax.plot(Irr.angle_deg, Irr['Irr'])
     ax.set_title('Solar Irradiance at sea level vs. Solar Elevation Angle',fontsize='x-large')
     ax.set_xlabel('Solar Elevation Angle  [deg.]',fontsize='large')
     ax.set_ylabel('Solar Irradiance at sea level [W m$^2$]',fontsize='large')
@@ -55,7 +55,7 @@ def plotam(Irr,M,I0,theta):
     ax.grid(True)
 
     ax=figure().gca()
-    ax.plot(theta,M)
+    ax.plot(Irr.angle_deg, Irr['Am'])
     ax.set_xlabel('Solar Elevation Angle  [deg.]',fontsize='large')
     ax.set_ylabel('Air Mass relative to zenith',fontsize='large')
     ax.set_title('Relative Air Mass vs. elevation angle',fontsize='large')
