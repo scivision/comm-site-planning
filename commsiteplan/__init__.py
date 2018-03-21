@@ -2,33 +2,61 @@
 import numpy as np
 from numpy import sin,cos
 import xarray
-from datetime import datetime
+from datetime import datetime,timedelta
 import astropy.units as u
 from astropy.coordinates import get_sun, EarthLocation, AltAz
 from astropy.time import Time
-from dateutil.rrule import HOURLY,rrule
 from matplotlib.dates import MonthLocator,DateFormatter
 
 from .plots import plotIrr, plotyear, plotenergy
 
-def compsolar(site,coord,year,minel,plotperhour,doplot=False):
+def compsolar(coord:tuple, minel:float, hourstep:float, year:int=2018, doplot=False):
     """
-    site: arbitrary string
-    coord: 2- or 3-tuple of WGS-84 coordinates in degrees optional altitude in meters
+    coord: string or 2- or 3-tuple of WGS-84 coordinates in degrees optional altitude in meters
     year: CE calendar year
     minel: minimum solar elevation above horizon to consider usable for solar energy (degrees)
-    plotperhour: smoother plot but longer time to compute
+    hourstep: hour increment
     doplot: boolean
     """
-    if isinstance(year,datetime):
-        year=year.year
 #%%
-    site = site.lower()
-    if len(site)==0 and coord[0] is not None: # len(site) == 0 to be nicer than None for string proc.
+    if isinstance(coord,str):
+        obs = _sitelookup(coord)
+    else:
         if len(coord)==2:
-            coord.append(0.) #in case altitude not specified
+           coord.append(0.) #in case altitude not specified
         obs = EarthLocation(lat=coord[0]*u.deg, lon=coord[1]*u.deg, height=coord[2]*u.m)
-    elif "sondrestrom" in site:
+
+    plotperday = int(24 / hourstep)
+    t0 = datetime(year,1,1)
+    t1 = datetime(year+1,1,1)
+    ts = timedelta(hours=hourstep)
+    times = [t0 + i*ts for i in range((t1-t0) // ts)]
+
+    dates = [d.date() for d in times[::plotperday]]
+    hours = [t.time() for t in times[:plotperday]]
+
+    #yes, we need to feed times to observer and sun!
+    sun = get_sun(Time(times)).transform_to(AltAz(obstime=times,location=obs))
+    sunel = sun.alt.degree.reshape((plotperday,-1),order='F')
+
+    Irr = airmass(sunel,times,minel)
+
+    Irr = estenergy(Irr)
+
+    if doplot:
+        lbl=MonthLocator(range(1,13),bymonthday=15,interval=1)
+        fmt=DateFormatter("%b")
+        plotIrr(dates,hours,Irr['Irr'], coord, obs,lbl,fmt)
+        plotyear(dates,hours,sunel, coord,obs,lbl,fmt)
+        plotenergy(Irr['Whr'],dates, coord,obs,lbl,fmt)
+
+    return Irr,sunel
+
+
+def _sitelookup(site:str):
+    site = site.lower()
+
+    if "sondrestrom" in site:
         obs = EarthLocation(lat=66.98*u.deg, lon=-50.94*u.deg, height=180*u.m)
     elif "pfisr" in site:
         obs = EarthLocation(lat=65.12*u.deg, lon=-147.49*u.deg, height=210*u.m)
@@ -39,39 +67,14 @@ def compsolar(site,coord,year,minel,plotperhour,doplot=False):
     else:
         raise ValueError('you must specify a site or coordinates')
 
-    plotperday = 24*plotperhour
-    #don't fool around with Pandas or Numpy, since Numpy datetime64 doesn't work with Matplotlib
-    times = list(rrule(HOURLY,
-                       dtstart=datetime(year,1,1,0,0,0),
-                       until=datetime(year,12,31,23,59,59)))
-
-    dates = times[::plotperday]
-    hoursofday = times[:plotperday]
-
-    #yes, we need to feed times to observer and sun!
-    sun = get_sun(Time(times)).transform_to(AltAz(obstime=times,location=obs))
-    sunel = sun.alt.degree.reshape((plotperday,-1),order='F')
-
-    Irr = airmass(sunel,times,minel)
-
-    Irr = estenergy(Irr,hoursofday)
-
-    if doplot:
-        lbl=MonthLocator(range(1,13),bymonthday=15,interval=1)
-        fmt=DateFormatter("%b")
-        plotIrr(dates,hoursofday,Irr['Irr'],site,obs,lbl,fmt)
-        plotyear(dates,hoursofday,sunel,site,obs,lbl,fmt)
-        plotenergy(Irr['Whr'],dates,site,obs,lbl,fmt)
-
-    return Irr,sunel
+    return obs
 
 
-def estenergy(Irr,hoursofday):
+def estenergy(Irr):
 
-    secs = [(h-hoursofday[0]).total_seconds()/3600 for h in hoursofday]
-    Irr['Irr'].fillna(0.)
+    Irr['Irr'] = Irr['Irr'].fillna(0.)
 
-    Irr['Whr'] = np.trapz(Irr['Irr'],x=secs,axis=0)
+    Irr['Whr'] = np.trapz(Irr['Irr'], x=Irr.hour, axis=0)
 
     return Irr
 
@@ -130,8 +133,7 @@ def airmass(thetadeg,dtime,minelevation_deg=5.):
     #oft cited from Meinel and Meinel 1976
     Irr =I0 * Clearness*0.7**Am.ravel()**0.678 #at sea level!
 
-    if Irr.size == Am.size and Irr.ndim != Am.ndim:
-        Irr = Irr.reshape(Am.shape)
+    Irr = Irr.reshape(Am.shape)
 
     if Irr.ndim==1:
         A = xarray.Dataset(
@@ -144,7 +146,7 @@ def airmass(thetadeg,dtime,minelevation_deg=5.):
         A = xarray.Dataset(
                         {'Am':(('hour','doy'),Am),
                          'Irr':(('hour','doy'),Irr)},
-                         coords={'hour':range(24),
+                         coords={'hour':range(0,24,(dtime[1]-dtime[0]).seconds//3600),
                                  'doy':range(365)})
 
 

@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 
 setup(name='CommSitePlan',
       packages=find_packages(),
-      version='0.5.0',
+      version='0.6.0',
 	  description='utilities for planning comms sites and science outposts',
 	  long_description=open('README.rst').read(),
 	  author='Michael Hirsch, Ph.D.',
@@ -25,6 +25,7 @@ setup(name='CommSitePlan',
       'Programming Language :: Python :: 3',
       'Topic :: Scientific/Engineering :: Atmospheric Science',
       ],
+      include_package_data=True,
 	  )
 
 
