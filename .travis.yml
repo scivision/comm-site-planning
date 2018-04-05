@@ -15,7 +15,7 @@ git:
 install: pip -q install -e .[tests]
 
 
-script: pytest -v
+script: pytest -sv
 
 after_success: 
   - coverage run tests/test_all.py

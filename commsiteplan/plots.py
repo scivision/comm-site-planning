@@ -1,26 +1,33 @@
+import xarray
 from matplotlib.pyplot import figure
+from matplotlib.dates import MonthLocator,DateFormatter
 
+lbl=MonthLocator(range(1,13),bymonthday=15,interval=1)
+fmt=DateFormatter("%b")
 
-def plotyear(dates,hoursofday,sunel,site,obs,lbl,fmt):
+def plotyear(Irr:xarray.Dataset):
+    if Irr['sunel'].dropna(dim='hour',how='all').shape[0] < 4:
+        return
+
     fg = figure(figsize=(12,7),dpi=100)
     ax = fg.gca()
     V = (-18,-12,-6,-3,0,10,20,30,40,50,60,70,80,90)
-    CS = ax.contour(dates,hoursofday,sunel,V)
+    CS = ax.contour(Irr.date.values, Irr.hour.values, Irr['sunel'].values,V)
     ax.clabel(CS, inline=1, fontsize=10,fmt='%0.0f')#, manual=manual_locations)
     ax.set_ylabel('UTC')
-    ax.set_title('Solar elevation angle (deg.)  {}: {:.1f},{:.1f}'.format(site,obs.lat,obs.lon))
+    ax.set_title('Solar elevation angle (deg.)  {:.1f},{:.1f}'.format(Irr.lat, Irr.lon))
     ax.grid(True)
 #    fg.autofmt_xdate()
     ax.xaxis.set_major_locator(lbl)
     ax.xaxis.set_major_formatter(fmt)
 
-def plotIrr(dates,hoursofday,Irr,site,obs,lbl,fmt):
+def plotIrr(Irr:xarray.Dataset):
     fg = figure(figsize=(12,7),dpi=100)
     ax = fg.gca()
-    CS = ax.contour(dates,hoursofday, Irr)
+    CS = ax.contour(Irr.date.values, Irr.hour.values, Irr['Irr'])
     ax.clabel(CS, inline=1, fontsize=10,fmt='%0.0f')#, manual=manual_locations)
     ax.set_ylabel('UTC')
-    ax.set_title('Sea level solar irradiance [W/m$^2$] at {}: {:.1f},{:.1f}'.format(site,obs.lat,obs.lon))
+    ax.set_title('Sea level solar irradiance [W/m$^2$] {:.1f},{:.1f}'.format(Irr.lat, Irr.lon))
     ax.grid(True)
 #    fg.autofmt_xdate()
     ax.xaxis.set_major_locator(lbl)
@@ -34,12 +41,12 @@ def plotday(t,sunalt,site):
     ax.grid(True)
     ax.set_title('{} {}'.format(site,t[0].strftime('%Y-%m-%d')))
 
-def plotenergy(Whr,dates,site,obs,lbl,fmt):
+def plotenergy(Irr):
     ax = figure().gca()
-    ax.plot(dates,Whr/1000)
+    ax.plot(Irr.date, Irr['Whr']/1000)
     ax.set_xlabel('UTC')
     ax.set_ylabel('kWhr m$^{-2}$ day$^{-1}$')
-    ax.set_title('Daily Solar Energy at {}: {:.1f}, {:.1f}'.format(site,obs.lat,obs.lon))
+    ax.set_title('Daily Solar Energy  {:.1f}, {:.1f}'.format(Irr.lat, Irr.lon))
     ax.set_ylim(0,12)
     ax.xaxis.set_major_locator(lbl)
     ax.xaxis.set_major_formatter(fmt)

@@ -7,16 +7,14 @@
     :target: https://ci.appveyor.com/project/scivision/comm-site-planning
 
 
-
-
-===================
-Comms Site Planning
-===================
+============================
+Communication Site Planning
+============================
 
 
 Examples
 ========
 
-* climateConops.py    Thermal modeling of outdoor enclosure e.g. DDB Unlimited
-* PlotSolarElev.py    Solar Elevation vs. energy vs. time of day/year
-* PlotAirMass.py      Plot air mass vs. elevation angle
+* ClimateConops.py    Thermal modeling of outdoor enclosure e.g. DDB Unlimited
+* SolarElev.py    Solar Elevation vs. energy vs. time of day/year
+* AirMass.py      Plot air mass vs. elevation angle

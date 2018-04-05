@@ -5,7 +5,7 @@ from dateutil.parser import parse
 from matplotlib.pyplot import show
 #
 import commsiteplan as csp
-from commsiteplan.plots import plotam
+import commsiteplan.plots as cspp
 
 if __name__ =='__main__':
     from argparse import ArgumentParser
@@ -22,7 +22,7 @@ if __name__ =='__main__':
     Irr = csp.airmass(p.theta, date)
 
     if Irr.angle_deg.size > 1:
-        plotam(Irr)
+        cspp.plotam(Irr)
         show()
     else:
         print(f'Irradiance: {Irr["Irr"].item():0.1f} [W/m^2]  '

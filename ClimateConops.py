@@ -6,8 +6,15 @@ Thanks to Amber Baurley and Sam Chen for climate research
  we consider arbitrarily two worst case dates:
  Dec 21 worst-case heating need -- 10th percentile
  Sept 1 worst-case cooling need
+ 
+My example case (your parameters will be different!)
+
+./ClimateConops.py 250 5 0.18 0.7
 """
-from numpy import sin,radians
+try:
+    from numpy import sin, radians
+except ImportError:
+    from math import sin, radians
 #
 #Qequip = { 'rest': 125, 'record': 175, 'compress': 250, 'off':5 } #[W]
 #
@@ -25,7 +32,7 @@ def worstHeat(Albedo,Aair,R,Qequip):
      25th percentile -35C, 10th percentile -40C
     """
     Q = {'sun':0,'equip':Qequip} #[W]
-    T={'out':-40,'in':-10} #[C]]
+    T = {'out':-40,'in':-10} #[C]]
     Q = calcQ(Q,A,sel,T,Albedo,R)
 
     print('10th percentile worst-case HEATing needs {:0.1f} watts / {:0.1f} BTU/hr.'.format(-Q['cooler'],-Q['cooler']*3.412) )
@@ -82,13 +89,14 @@ def printQ(Q):
     print('Qxfer [Watts]: {:0.1f}'.format(Q['xfer']))
     print('Qequip [Watts]: {:0.1f}'.format(Q['equip']))
 
-#------------------
+# %%
 if __name__ == '__main__':
     from argparse import ArgumentParser
     p = ArgumentParser(description='very simple steady state thermodynamic enclosure analysis')
-    p.add_argument('-R',help='R-value constant [m^2 C/W]',type=float,default=0.18)
-    p.add_argument('-a','--albedo',help='Cabinet albedo (is it bare metal, gray, white?)',type=float,default=0.7)
-    p.add_argument('-Q','--Qonoff',help='Power consumption of all equipment when ON and OFF [watts]',type=float,nargs=2,default=[225,5])
+    p.add_argument('Qonoff',help='Power consumption of all equipment when ON and OFF [watts]',nargs=2,type=float)
+    p.add_argument('R',help='R-value constant [m^2 C/W]',type=float)
+    p.add_argument('albedo',help='Cabinet albedo (is it bare metal, gray, white?)',type=float)
+
     p=p.parse_args()
 
     Qon = p.Qonoff[0]; Qoff = p.Qonoff[1]

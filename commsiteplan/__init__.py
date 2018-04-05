@@ -6,11 +6,9 @@ from datetime import datetime,timedelta
 import astropy.units as u
 from astropy.coordinates import get_sun, EarthLocation, AltAz
 from astropy.time import Time
-from matplotlib.dates import MonthLocator,DateFormatter
 
-from .plots import plotIrr, plotyear, plotenergy
 
-def compsolar(coord:tuple, minel:float, hourstep:float, year:int=2018, doplot=False):
+def compsolar(coord:tuple, minel:float, hourstep:float, year:int=2018) -> xarray.Dataset:
     """
     coord: string or 2- or 3-tuple of WGS-84 coordinates in degrees optional altitude in meters
     year: CE calendar year
@@ -18,23 +16,19 @@ def compsolar(coord:tuple, minel:float, hourstep:float, year:int=2018, doplot=Fa
     hourstep: hour increment
     doplot: boolean
     """
-#%%
-    if isinstance(coord,str):
-        obs = _sitelookup(coord)
-    else:
-        if len(coord)==2:
-           coord.append(0.) #in case altitude not specified
-        obs = EarthLocation(lat=coord[0]*u.deg, lon=coord[1]*u.deg, height=coord[2]*u.m)
+#%% time and coords
+
+    if len(coord)==2:
+       coord.append(0.) #in case altitude not specified
+
+    obs = EarthLocation(lat=coord[0]*u.deg, lon=coord[1]*u.deg, height=coord[2]*u.m)
 
     plotperday = int(24 / hourstep)
     t0 = datetime(year,1,1)
     t1 = datetime(year+1,1,1)
     ts = timedelta(hours=hourstep)
     times = [t0 + i*ts for i in range((t1-t0) // ts)]
-
-    dates = [d.date() for d in times[::plotperday]]
-    hours = [t.time() for t in times[:plotperday]]
-
+# %% computations
     #yes, we need to feed times to observer and sun!
     sun = get_sun(Time(times)).transform_to(AltAz(obstime=times,location=obs))
     sunel = sun.alt.degree.reshape((plotperday,-1),order='F')
@@ -42,39 +36,22 @@ def compsolar(coord:tuple, minel:float, hourstep:float, year:int=2018, doplot=Fa
     Irr = airmass(sunel,times,minel)
 
     Irr = estenergy(Irr)
-
-    if doplot:
-        lbl=MonthLocator(range(1,13),bymonthday=15,interval=1)
-        fmt=DateFormatter("%b")
-        plotIrr(dates,hours,Irr['Irr'], coord, obs,lbl,fmt)
-        plotyear(dates,hours,sunel, coord,obs,lbl,fmt)
-        plotenergy(Irr['Whr'],dates, coord,obs,lbl,fmt)
-
-    return Irr,sunel
+# %% collect outupt
+    dates = [d.date() for d in times[::plotperday]]
+    Irr['date'] = dates
+    Irr['sunel'] = (('hour','date'),sunel)
+    Irr.attrs['lat'] = coord[0]
+    Irr.attrs['lon'] = coord[1]
 
 
-def _sitelookup(site:str):
-    site = site.lower()
-
-    if "sondrestrom" in site:
-        obs = EarthLocation(lat=66.98*u.deg, lon=-50.94*u.deg, height=180*u.m)
-    elif "pfisr" in site:
-        obs = EarthLocation(lat=65.12*u.deg, lon=-147.49*u.deg, height=210*u.m)
-    elif site == "bu":
-        obs = EarthLocation(lat=42.4*u.deg, lon=-71.1*u.deg, height=5*u.m)
-    elif "svalbard" in site:
-        obs = EarthLocation(lat=78.23*u.deg, lon=15.4*u.deg, height=450*u.m)
-    else:
-        raise ValueError('you must specify a site or coordinates')
-
-    return obs
+    return Irr
 
 
 def estenergy(Irr):
 
     Irr['Irr'] = Irr['Irr'].fillna(0.)
 
-    Irr['Whr'] = np.trapz(Irr['Irr'], x=Irr.hour, axis=0)
+    Irr['Whr'] = ('date',np.trapz(Irr['Irr'], x=Irr.hour, axis=0))
 
     return Irr
 
@@ -144,10 +121,10 @@ def airmass(thetadeg,dtime,minelevation_deg=5.):
         A = A.dropna(how='all',dim='angle_deg')
     elif Irr.ndim==2:
         A = xarray.Dataset(
-                        {'Am':(('hour','doy'),Am),
-                         'Irr':(('hour','doy'),Irr)},
+                        {'Am':(('hour','date'),Am),
+                         'Irr':(('hour','date'),Irr)},
                          coords={'hour':range(0,24,(dtime[1]-dtime[0]).seconds//3600),
-                                 'doy':range(365)})
+                                 'date':range(365)})
 
 
     return A
