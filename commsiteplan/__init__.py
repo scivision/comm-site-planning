@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from typing import List
+from typing import List, Tuple, Sequence
 from numpy import sin, cos
 import xarray
 from datetime import datetime, timedelta
@@ -48,7 +48,7 @@ def compsolar(coord: List[float], minel: float,
     return Irr
 
 
-def estenergy(Irr):
+def estenergy(Irr: xarray.Dataset) -> xarray.Dataset:
 
     Irr['Irr'] = Irr['Irr'].fillna(0.)
 
@@ -59,7 +59,8 @@ def estenergy(Irr):
 # %%
 
 
-def airmass(thetadeg, dtime, minelevation_deg=5.):
+def airmass(thetadeg: float, dtime: Sequence[datetime],
+            minelevation_deg: float = 5.) -> xarray.Dataset:
     """
     Michael Hirsch
 
@@ -132,7 +133,7 @@ def airmass(thetadeg, dtime, minelevation_deg=5.):
     return A
 
 
-def Time2doy(dtime: datetime) -> int:
+def Time2doy(dtime: Sequence[datetime]) -> int:
     dt = np.atleast_1d(dtime)
 
     doy = np.asarray([int(t.strftime('%j')) for t in dt])
@@ -140,7 +141,7 @@ def Time2doy(dtime: datetime) -> int:
     return doy
 
 
-def doy2monthday(doy):
+def doy2monthday(doy: Sequence[int]) -> Tuple[np.ndarray, np.ndarray]:
     doy = np.atleast_1d(doy)
     """ day of year to month, day in datetime()"""
     mon = []

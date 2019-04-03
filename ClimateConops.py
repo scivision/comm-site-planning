@@ -21,20 +21,27 @@ from typing import Dict
 user input: plug in the area of your enclosure faces in Areas
 """
 # [m^2] area of the panel
-Areas = [{'side': 0.45, 'end': 0.35, 'top': 0.45, 'model': 'Zarges'},
-         {'side': 0.51, 'end': 0.5, 'top': 0.41, 'model': 'OD-30DXC'}]
+Areas = [
+    {'side': 0.45, 'end': 0.35, 'top': 0.45, 'model': 'Zarges'},
+    {'side': 0.51, 'end': 0.50, 'top': 0.41, 'model': 'OD-30DXC'},
+    {'side': 1.40, 'end': 1.40, 'top': 0.8, 'model': 'Compact greenhouse'}]
+
+COLDEST_OUTSIDE_TEMP_C = -20.
+COLDEST_INSIDE_TEMP_C = 0.
+SOLAR_IRR = 850.  # Watts
+WARMEST_OUTSIDE_TEMP_C = 20.
+WARMEST_INSIDE_TEMP_C = 30.
 
 
 def main():
     p = ArgumentParser(description='very simple steady state thermodynamic enclosure analysis')
-    p.add_argument('Qonoff', help='Power consumption of all equipment when ON and OFF [watts]', nargs=2, type=float)
+    p.add_argument('Qon', help='Internal heat generated [watts]', type=float)
     p.add_argument('R', help='R-value constant [m^2 C/W]', type=float)
     p.add_argument('albedo', help='Cabinet albedo (is it bare metal, gray, white?)', type=float)
 
     p = p.parse_args()
 
-    Qon = p.Qonoff[0]
-    Qoff = p.Qonoff[1]
+    Qon = p.Qon
 
     for A in Areas:
         print('\nanalysis of ' + A['model'])
@@ -48,67 +55,76 @@ def main():
         print('Sign convention: negative watts is outgoing heat flux')
         print('-------------------------------------------')
         worstHeat(p.albedo, A, p.R, Qon)
-        print('-------------------------------------------')
-        worstCool(p.albedo, A, p.R, Qon)
-        print('-------------------------------------------')
-        SummerCool(p.albedo, A, p.R, Qoff)
+        if not A['model'].endswith('greenhouse'):
+            print('-------------------------------------------')
+            worstCool(p.albedo, A, p.R, Qon)
 
 
 def worstHeat(Albedo: float, A: Dict[str, float], R: float, Qequip: float):
-    sel = 0
-    # assume sun is below horizon 24 hours a day
-    """http://weatherspark.com/averages/32940/1/Fairbanks-Alaska-United-States
+    """
+    http://weatherspark.com/averages/32940/1/Fairbanks-Alaska-United-States
      25th percentile -35C, 10th percentile -40C
     """
-    Q = {'sun': 0., 'equip': Qequip}  # [W]
-    T = {'out': -40, 'in': -10.}  # [C]]
-    Q = calcQ(Q, A, sel, T, Albedo, R)
+    NIGHT_SOLAR_ELEV = 0.
+    NIGHT_SOLAR_IRR = 0.
 
-    print('10th percentile worst-case HEATing needs {:0.1f} watts / {:0.1f} BTU/hr.'.format(-Q['cooler'], -Q['cooler']*3.412))
+    Q = {'sun': NIGHT_SOLAR_IRR, 'equip': Qequip}  # [W]
+    T = {'out': COLDEST_OUTSIDE_TEMP_C, 'in': COLDEST_INSIDE_TEMP_C}  # [C]]
+    Q = calcQ(Q, A, NIGHT_SOLAR_ELEV, T, Albedo, R)
+
+    print(f'for outside temp C {COLDEST_OUTSIDE_TEMP_C} and inside temp C {COLDEST_INSIDE_TEMP_C}:')
+    print(f'  HEATing needs: {-Q["cooler"]:0.1f} watts / {-Q["cooler"]*3.412:0.1f} BTU/hr.')
     printQ(Q)
 
 
 def worstCool(Albedo: float, A: Dict[str, float], R: float, Qequip: float):
-    sel = 35
     """
     assume sun is at 35 degree elev
     neglects ground radation
-    """
-    """http://weatherspark.com/averages/32940/1/Fairbanks-Alaska-United-States
+
+    http://weatherspark.com/averages/32940/1/Fairbanks-Alaska-United-States
      25th percentile 18C, 10th percentile 21C
     """
-    Q = {'sun': 850, 'equip': Qequip}  # [W]
-    T = {'out': 20, 'in': 30.}  # [C]]
-    Q = calcQ(Q, A, sel, T, Albedo, R)
+    SOLAR_ELEV = 35.  # Degrees
+
+    Q = {'sun': SOLAR_IRR, 'equip': Qequip}  # [W]
+    T = {'out': WARMEST_OUTSIDE_TEMP_C, 'in': WARMEST_INSIDE_TEMP_C}  # [C]]
+    Q = calcQ(Q, A, SOLAR_ELEV, T, Albedo, R)
 
     print('90th percentile worst-case COOLing needs {:0.1f} watts / {:0.1f} BTU/hr.'.format(Q['cooler'], Q['cooler']*3.412))
     printQ(Q)
 
 
 def SummerCool(Albedo: float, A: Dict[str, float], R: float, Qequip: float):
-    sel = 45
-    # assume sun is at 45 degree elev, neglect cabinet albedo
-    """http://weatherspark.com/averages/32940/1/Fairbanks-Alaska-United-States
+    """
+    assume sun is at 45 degree elev, neglect cabinet albedo
+
+    http://weatherspark.com/averages/32940/1/Fairbanks-Alaska-United-States
      25th percentile 18C, 10th percentile 21C
     """
-    Q = {'sun': 850., 'equip': Qequip}  # [W]
-    T = {'out': 35., 'in': 40.}  # [C]
-    Q = calcQ(Q, A, sel, T, Albedo, R)
+    SOLAR_ELEV = 45.  # Degrees
 
-    print('90th perc. Summer storage COOLing needs {:0.1f} watts / {:0.1f} BTU/hr.'.format(Q['cooler'], Q['cooler']*3.412))
+    Q = {'sun': SOLAR_IRR, 'equip': Qequip}  # [W]
+    T = {'out': WARMEST_OUTSIDE_TEMP_C, 'in': WARMEST_INSIDE_TEMP_C}  # [C]
+    Q = calcQ(Q, A, SOLAR_ELEV, T, Albedo, R)
+
+    print('Summer storage COOLing needs {:0.1f} watts / {:0.1f} BTU/hr.'.format(Q['cooler'], Q['cooler']*3.412))
     printQ(Q)
 
 
 def calcQ(Q: Dict[str, float], A: Dict[str, float], sel: float,
           T: Dict[str, float], Albedo: float, R: float) -> Dict[str, float]:
-    # invoke Lambert's Cosine Law
-    Q['top'] = A['top'] * Q['sun'] * sin(radians(sel))  # max sun elev ~ 45 deg. mid summer
-    Q['side'] = A['side'] * Q['sun'] * sin(radians(sel))  # worst case(?)
-    Q['end'] = 0  # A['end']  * Qsun * sin(radians(45)) #consistent with angle used for top,side
-    Q['solar'] = Q['top'] + Q['side'] + Q['end']  # figure only 1 side, 1 end lit up
+    """
+    calculate heat flux
+    """
+# %% invoke Lambert's Cosine Law
+    Qtop = A['top'] * Q['sun'] * sin(radians(sel))  # max sun elev ~ 45 deg. mid summer
+    Qside = A['side'] * Q['sun'] * sin(radians(sel))  # worst case(?)
+    Qend = 0.  # A['end']  * Qsun * sin(radians(45)) #consistent with angle used for top,side
+    Q['solar'] = Qtop + Qside + Qend  # figure only 1 side, 1 end lit up
 
-    Q['ext'] = Q['solar']*(1-Albedo)
-    Q['xfer'] = A['air'] / R * (T['out']-T['in'])
+    Q['ext'] = Q['solar'] * (1-Albedo)
+    Q['xfer'] = A['air'] / R * (T['out'] - T['in'])
 
     Q['cooler'] = Q['ext'] + Q['xfer'] + Q['equip']  # [W]
 
