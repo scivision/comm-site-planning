@@ -1,5 +1,10 @@
 language: python
-fast_finish: true
+dist: xenial
+group: travis_latest
+
+git:
+  depth: 25
+  quiet: true
 
 python:
   - 3.6
@@ -7,16 +12,9 @@ python:
 os:
   - linux
 
-group: travis_latest
 
-git:
-  depth: 3
+install: pip install -e .[tests,cov]
 
-install: pip -q install -e .[tests]
+script: pytest --cov
 
-
-script: pytest -sv
-
-after_success: 
-  - coverage run tests/test_all.py
-  - coveralls
+after_success: coveralls
