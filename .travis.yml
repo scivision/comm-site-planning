@@ -15,6 +15,9 @@ os:
 
 install: pip install -e .[tests,cov]
 
-script: pytest --cov
+script:
+- flake8
+- mypy .
+- pytest --cov
 
 after_success: coveralls
