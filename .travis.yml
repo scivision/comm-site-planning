@@ -1,23 +1,13 @@
 language: python
-dist: xenial
 group: travis_latest
 
 git:
   depth: 25
   quiet: true
 
-python:
-  - 3.6
-
-os:
-  - linux
-
-
-install: pip install -e .[tests,cov]
+install: pip install .[tests,lint]
 
 script:
 - flake8
 - mypy .
-- pytest --cov
-
-after_success: coveralls
+- pytest
